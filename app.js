@@ -936,11 +936,14 @@ async function init() {
     renderJournal();
   });
 
-  // Logout
-  document.getElementById('logout-btn').addEventListener('click', async () => {
-    await fetch('/api/logout', { method: 'POST' });
-    window.location.href = '/login';
-  });
+  // Logout (not present on share page)
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = '/login';
+    });
+  }
 
   // Modal close
   document.getElementById('modal-close').addEventListener('click', closeModal);
