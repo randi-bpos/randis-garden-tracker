@@ -84,6 +84,20 @@ body {
   font-weight: 600;
 }
 
+.btn-logout {
+  margin-left: auto;
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.88);
+  border: 1px solid rgba(255,255,255,0.28);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.btn-logout:hover { background: rgba(255,255,255,0.25); color: white; }
+
 /* ============================================================
    Layout
    ============================================================ */

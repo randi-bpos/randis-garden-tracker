@@ -28,6 +28,7 @@ async function apiCall(method, url, body) {
     body: body ? JSON.stringify(body) : undefined,
   };
   const res = await fetch(url, options);
+  if (res.status === 401) { window.location.href = '/login'; return; }
   if (!res.ok) throw new Error(`Request failed: ${res.status}`);
   return res.json();
 }
@@ -931,6 +932,12 @@ async function init() {
   document.getElementById('filter-type').addEventListener('change', (e) => {
     state.filterType = e.target.value;
     renderJournal();
+  });
+
+  // Logout
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    await fetch('/api/logout', { method: 'POST' });
+    window.location.href = '/login';
   });
 
   // Modal close

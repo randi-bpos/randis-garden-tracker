@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Randi's Garden</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <style>
+    .share-header {
+      background: #2d6a35;
+      color: white;
+      padding: 14px 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+    .share-header-inner {
+      max-width: 1020px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .share-header h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.3px; }
+    .share-subtitle { color: rgba(255,255,255,0.75); font-size: 0.88rem; margin-top: 3px; }
+    .share-badge {
+      background: rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.9);
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .plant-card { cursor: default; }
+    .plant-card:hover { box-shadow: none; }
+  </style>
+</head>
+<body>
+  <header class="share-header">
+    <div class="share-header-inner">
+      <div>
+        <h1>Randi's Garden Tracker</h1>
+        <div class="share-subtitle" id="plant-subtitle">Loading...</div>
+      </div>
+      <span class="share-badge">View Only</span>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="plants-grid" class="plants-grid">
+      <p class="empty-state">Loading garden...</p>
+    </div>
+  </main>
+
+  <script>
+    const HEIRLOOM_LABELS = { heirloom: 'Heirloom', hybrid: 'Hybrid', unknown: 'Not sure' };
+    const CATEGORY_LABELS = {
+      tomato:'Tomato', pepper:'Pepper', cucumber:'Cucumber', squash:'Squash / Zucchini',
+      beans:'Beans', lettuce:'Lettuce / Salad Greens', herb:'Herb', root:'Root Vegetable',
+      corn:'Corn', eggplant:'Eggplant', melon:'Melon', berries:'Berries', other:'Other',
+    };
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '—';
+      return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric',
+      });
+    }
+
+    async function init() {
+      const { plants } = await fetch('/api/share-data').then(r => r.json());
+
+      document.getElementById('plant-subtitle').textContent =
+        `${plants.length} plant${plants.length !== 1 ? 's' : ''} growing · ${new Date().getFullYear()}`;
+
+      const grid = document.getElementById('plants-grid');
+      if (plants.length === 0) {
+        grid.innerHTML = '<p class="empty-state">No plants added yet.</p>';
+        return;
+      }
+
+      grid.innerHTML = plants.map(plant => `
+        <div class="plant-card card-cat-${plant.category || 'other'}">
+          <div class="plant-card-top">
+            ${plant.location ? `<span class="plant-loc">${plant.location}</span>` : ''}
+            ${plant.heirloom ? `<span class="plant-loc">${HEIRLOOM_LABELS[plant.heirloom] || ''}</span>` : ''}
+          </div>
+          <h3 class="plant-card-name">${plant.name}</h3>
+          ${plant.variety && !plant.name?.includes(plant.variety)
+            ? `<div class="plant-card-sub">${plant.variety}</div>` : ''}
+          ${plant.datePlanted
+            ? `<div class="plant-card-meta">Planted ${formatDate(plant.datePlanted)}</div>` : ''}
+          ${plant.category
+            ? `<div class="plant-card-meta">${CATEGORY_LABELS[plant.category] || plant.category}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    init();
+  </script>
+</body>
+</html>
