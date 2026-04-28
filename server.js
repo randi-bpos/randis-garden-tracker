@@ -1,77 +1,70 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
+const { Pool } = require('pg');
 const { randomUUID } = require('crypto');
 
 const app = express();
-const PORT = 3000;
-const DATA_DIR = path.join(__dirname, 'data');
-const DATA_FILE = path.join(DATA_DIR, 'garden.json');
+const PORT = process.env.PORT || 3000;
 
-// Create data directory on first run
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+});
+
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS plants (id TEXT PRIMARY KEY, data JSONB NOT NULL);
+    CREATE TABLE IF NOT EXISTS logs   (id TEXT PRIMARY KEY, data JSONB NOT NULL);
+  `);
 }
 
 app.use(express.json());
 
 // ── API Routes ──────────────────────────────────────────────
 
-function readData() {
-  try {
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-  } catch {
-    return { plants: [], logs: [] };
-  }
-}
-
-function writeData(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
-}
-
 // GET all data
-app.get('/api/data', (req, res) => {
-  res.json(readData());
+app.get('/api/data', async (req, res) => {
+  const [plants, logs] = await Promise.all([
+    pool.query(`SELECT data FROM plants ORDER BY data->>'createdAt'`),
+    pool.query(`SELECT data FROM logs   ORDER BY data->>'createdAt'`),
+  ]);
+  res.json({
+    plants: plants.rows.map(r => r.data),
+    logs:   logs.rows.map(r => r.data),
+  });
 });
 
 // Create plant
-app.post('/api/plants', (req, res) => {
-  const data = readData();
-  const plant = {
-    ...req.body,
-    id: randomUUID(),
-    createdAt: new Date().toISOString(),
-  };
-  data.plants.push(plant);
-  writeData(data);
+app.post('/api/plants', async (req, res) => {
+  const plant = { ...req.body, id: randomUUID(), createdAt: new Date().toISOString() };
+  await pool.query('INSERT INTO plants (id, data) VALUES ($1, $2)', [plant.id, plant]);
   res.json(plant);
 });
 
 // Update plant
-app.put('/api/plants/:id', (req, res) => {
-  const data = readData();
-  const idx = data.plants.findIndex(p => p.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Plant not found' });
-  data.plants[idx] = { ...data.plants[idx], ...req.body, id: req.params.id };
-  writeData(data);
-  res.json(data.plants[idx]);
+app.put('/api/plants/:id', async (req, res) => {
+  const result = await pool.query('SELECT data FROM plants WHERE id = $1', [req.params.id]);
+  if (result.rows.length === 0) return res.status(404).json({ error: 'Plant not found' });
+  const updated = { ...result.rows[0].data, ...req.body, id: req.params.id };
+  await pool.query('UPDATE plants SET data = $1 WHERE id = $2', [updated, req.params.id]);
+  res.json(updated);
 });
 
 // Delete plant
-app.delete('/api/plants/:id', (req, res) => {
-  const data = readData();
-  data.plants = data.plants.filter(p => p.id !== req.params.id);
+app.delete('/api/plants/:id', async (req, res) => {
+  await pool.query('DELETE FROM plants WHERE id = $1', [req.params.id]);
   // Remove logs that only applied to this plant
-  data.logs = data.logs.filter(l =>
-    !(l.plantIds.length === 1 && l.plantIds[0] === req.params.id)
-  );
-  writeData(data);
+  const logsResult = await pool.query('SELECT id, data FROM logs');
+  for (const row of logsResult.rows) {
+    const log = row.data;
+    if (log.plantIds.length === 1 && log.plantIds[0] === req.params.id) {
+      await pool.query('DELETE FROM logs WHERE id = $1', [log.id]);
+    }
+  }
   res.json({ ok: true });
 });
 
 // Create log entry
-app.post('/api/logs', (req, res) => {
-  const data = readData();
+app.post('/api/logs', async (req, res) => {
   const log = {
     id: randomUUID(),
     date: req.body.date || new Date().toISOString().slice(0, 10),
@@ -81,33 +74,36 @@ app.post('/api/logs', (req, res) => {
     notes: req.body.notes || '',
     createdAt: new Date().toISOString(),
   };
-  data.logs.push(log);
-  writeData(data);
+  await pool.query('INSERT INTO logs (id, data) VALUES ($1, $2)', [log.id, log]);
   res.json(log);
 });
 
 // Update log entry
-app.put('/api/logs/:id', (req, res) => {
-  const data = readData();
-  const idx = data.logs.findIndex(l => l.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Log not found' });
-  data.logs[idx] = { ...data.logs[idx], ...req.body, id: req.params.id };
-  writeData(data);
-  res.json(data.logs[idx]);
+app.put('/api/logs/:id', async (req, res) => {
+  const result = await pool.query('SELECT data FROM logs WHERE id = $1', [req.params.id]);
+  if (result.rows.length === 0) return res.status(404).json({ error: 'Log not found' });
+  const updated = { ...result.rows[0].data, ...req.body, id: req.params.id };
+  await pool.query('UPDATE logs SET data = $1 WHERE id = $2', [updated, req.params.id]);
+  res.json(updated);
 });
 
 // Delete log entry
-app.delete('/api/logs/:id', (req, res) => {
-  const data = readData();
-  data.logs = data.logs.filter(l => l.id !== req.params.id);
-  writeData(data);
+app.delete('/api/logs/:id', async (req, res) => {
+  await pool.query('DELETE FROM logs WHERE id = $1', [req.params.id]);
   res.json({ ok: true });
 });
 
 // ── Serve frontend ──────────────────────────────────────────
 app.use(express.static(__dirname));
 
-app.listen(PORT, () => {
-  console.log(`\nGarden Tracker is running!`);
-  console.log(`Open your browser and go to: http://localhost:${PORT}\n`);
-});
+// ── Start ───────────────────────────────────────────────────
+initDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Garden Tracker running on port ${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('Failed to initialize database:', err);
+    process.exit(1);
+  });
