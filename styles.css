@@ -320,6 +320,18 @@ body {
 }
 .plant-card:hover { box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08); }
 
+/* ============================================================
+   Share / view-only mode — hide all edit controls
+   ============================================================ */
+.share-mode .quick-actions,
+.share-mode #add-plant-btn,
+.share-mode .row-actions,
+.share-mode .btn-card-water,
+.share-mode .btn-card-note,
+.share-mode .section-header,
+.share-mode .log-entry-actions,
+.share-mode .btn-logout { display: none !important; }
+
 /* Category color accents — left border per plant type */
 .card-cat-tomato   { border-left: 4px solid #d94f4f; }
 .card-cat-pepper   { border-left: 4px solid #c0392b; }

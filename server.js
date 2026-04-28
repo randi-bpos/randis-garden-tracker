@@ -51,8 +51,14 @@ app.post('/api/logout', (req, res) => {
 
 app.get('/api/share-data', async (req, res) => {
   try {
-    const result = await pool.query(`SELECT data FROM plants ORDER BY data->>'createdAt'`);
-    res.json({ plants: result.rows.map(r => r.data) });
+    const [plants, logs] = await Promise.all([
+      pool.query(`SELECT data FROM plants ORDER BY data->>'createdAt'`),
+      pool.query(`SELECT data FROM logs   ORDER BY data->>'createdAt'`),
+    ]);
+    res.json({
+      plants: plants.rows.map(r => r.data),
+      logs:   logs.rows.map(r => r.data),
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

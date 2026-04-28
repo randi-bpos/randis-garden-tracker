@@ -3,101 +3,255 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Randi's Garden</title>
+  <title>Randi's Garden Tracker</title>
   <link rel="stylesheet" href="./styles.css" />
   <style>
-    .share-header {
-      background: #2d6a35;
-      color: white;
-      padding: 14px 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-    }
-    .share-header-inner {
-      max-width: 1020px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .share-header h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.3px; }
-    .share-subtitle { color: rgba(255,255,255,0.75); font-size: 0.88rem; margin-top: 3px; }
-    .share-badge {
+    .view-only-badge {
       background: rgba(255,255,255,0.18);
       color: rgba(255,255,255,0.9);
-      padding: 5px 14px;
+      padding: 4px 12px;
       border-radius: 20px;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 600;
       white-space: nowrap;
+      margin-left: auto;
     }
-    .plant-card { cursor: default; }
-    .plant-card:hover { box-shadow: none; }
   </style>
 </head>
 <body>
-  <header class="share-header">
-    <div class="share-header-inner">
-      <div>
-        <h1>Randi's Garden Tracker</h1>
-        <div class="share-subtitle" id="plant-subtitle">Loading...</div>
-      </div>
-      <span class="share-badge">View Only</span>
+
+  <header class="app-header">
+    <div class="header-inner">
+      <h1>Randi's Garden Tracker</h1>
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+        <button class="tab-btn" data-tab="plants">Plants</button>
+        <button class="tab-btn" data-tab="journal">Journal</button>
+      </nav>
+      <span class="view-only-badge">View Only</span>
     </div>
   </header>
 
   <main class="container">
-    <div id="plants-grid" class="plants-grid">
-      <p class="empty-state">Loading garden...</p>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- DASHBOARD TAB                                          -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="tab-dashboard" class="tab-panel">
+
+      <div class="quick-actions">
+        <button id="quick-rain-btn" class="btn-quick btn-rain">It Rained Today</button>
+        <button id="quick-water-all-btn" class="btn-quick btn-water-all">Watered All Plants</button>
+      </div>
+
+      <div class="stats-bar">
+        <div class="stat">
+          <span class="stat-value" id="stat-plants">0</span>
+          <span class="stat-label">Plants</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-watered">0</span>
+          <span class="stat-label">Waterings This Week</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-rain">—</span>
+          <span class="stat-label">Last Rain</span>
+        </div>
+      </div>
+
+      <div id="dashboard-filter-bar" class="dashboard-filter-bar"></div>
+      <div id="plants-grid" class="plants-grid"></div>
     </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- PLANTS TAB                                             -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="tab-plants" class="tab-panel hidden">
+
+      <div class="section-header">
+        <button id="add-plant-btn" class="btn-primary">+ Add Plant</button>
+      </div>
+
+      <div id="plant-form-container" class="card form-card hidden">
+        <h2 id="plant-form-title">Add New Plant</h2>
+        <form id="plant-form">
+          <div class="form-grid">
+            <label>
+              Category
+              <select name="category" id="plant-category-select">
+                <option value="">— Select a category —</option>
+                <option value="tomato">Tomato</option>
+                <option value="pepper">Pepper</option>
+                <option value="cucumber">Cucumber</option>
+                <option value="squash">Squash / Zucchini</option>
+                <option value="beans">Beans</option>
+                <option value="lettuce">Lettuce / Salad Greens</option>
+                <option value="herb">Herb</option>
+                <option value="root">Root Vegetable</option>
+                <option value="corn">Corn</option>
+                <option value="eggplant">Eggplant</option>
+                <option value="melon">Melon</option>
+                <option value="berries">Berries</option>
+                <option value="other">Other / Not Listed</option>
+              </select>
+            </label>
+          </div>
+          <div id="category-specific-fields" class="form-grid hidden"></div>
+          <div class="form-grid">
+            <label>
+              Heirloom / Hybrid?
+              <select name="heirloom">
+                <option value="">Not specified</option>
+                <option value="heirloom">Heirloom</option>
+                <option value="hybrid">Hybrid</option>
+                <option value="unknown">Not sure</option>
+              </select>
+            </label>
+            <label>
+              Date Planted
+              <input name="datePlanted" type="date" />
+            </label>
+            <label>
+              Container Type
+              <input name="location" placeholder="e.g. 5-gallon pot, fabric grow bag, window box" />
+            </label>
+            <label class="full">
+              General Notes
+              <input name="notes" placeholder="Anything worth remembering" />
+            </label>
+            <label class="full">
+              Care Instructions
+              <textarea name="careInstructions" rows="7" placeholder="Paste recommended care instructions here."></textarea>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">Save Plant</button>
+            <button type="button" id="cancel-plant-btn" class="btn-secondary">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="plant-list"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- JOURNAL TAB                                            -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="tab-journal" class="tab-panel hidden">
+
+      <div class="section-header">
+        <button id="add-log-btn" class="btn-primary">+ Add Log Entry</button>
+        <button id="export-csv-btn" class="btn-secondary">Export to CSV</button>
+      </div>
+
+      <div id="log-form-container" class="card form-card hidden">
+        <h2 id="log-form-title">New Log Entry</h2>
+        <form id="log-form">
+          <div class="form-grid">
+            <label>
+              Date
+              <input id="log-date" name="date" type="date" />
+            </label>
+            <label>
+              Event Type
+              <select name="type">
+                <option value="water">Water</option>
+                <option value="rain">Rain</option>
+                <option value="fertilize">Fertilize</option>
+                <option value="observation">Observation / Note</option>
+                <option value="harvest">Harvest</option>
+                <option value="treatment">Treatment (pest, disease, etc.)</option>
+                <option value="first_flowers">First Flowers Appeared</option>
+                <option value="first_fruit">First Fruit Appeared</option>
+                <option value="harvest_start">Harvest Started</option>
+                <option value="height">Height Measurement</option>
+              </select>
+            </label>
+            <label class="full">
+              Which Plant(s)?
+              <div class="plant-picker" id="log-plant-picker"></div>
+            </label>
+            <label>
+              Amount (optional)
+              <input name="amount" placeholder="e.g. 1 inch of rain, 2 cups water, 1 lb tomatoes" />
+            </label>
+            <label class="full">
+              Notes
+              <textarea name="notes" rows="4" placeholder="What did you do? How do the plants look?"></textarea>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">Save Entry</button>
+            <button type="button" id="cancel-log-btn" class="btn-secondary">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="filters">
+        <label>
+          Year
+          <select id="filter-year"></select>
+        </label>
+        <label>
+          Plant
+          <select id="filter-plant">
+            <option value="all">All Plants</option>
+          </select>
+        </label>
+        <label>
+          Type
+          <select id="filter-type">
+            <option value="all">All Types</option>
+            <option value="water">Water</option>
+            <option value="rain">Rain</option>
+            <option value="fertilize">Fertilize</option>
+            <option value="observation">Observation</option>
+            <option value="harvest">Harvest</option>
+            <option value="treatment">Treatment</option>
+            <option value="first_flowers">First Flowers</option>
+            <option value="first_fruit">First Fruit</option>
+            <option value="harvest_start">Harvest Started</option>
+            <option value="height">Height</option>
+          </select>
+        </label>
+      </div>
+
+      <div id="log-list"></div>
+    </div>
+
   </main>
 
-  <script>
-    const HEIRLOOM_LABELS = { heirloom: 'Heirloom', hybrid: 'Hybrid', unknown: 'Not sure' };
-    const CATEGORY_LABELS = {
-      tomato:'Tomato', pepper:'Pepper', cucumber:'Cucumber', squash:'Squash / Zucchini',
-      beans:'Beans', lettuce:'Lettuce / Salad Greens', herb:'Herb', root:'Root Vegetable',
-      corn:'Corn', eggplant:'Eggplant', melon:'Melon', berries:'Berries', other:'Other',
-    };
-
-    function formatDate(dateStr) {
-      if (!dateStr) return '—';
-      return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
-        month: 'short', day: 'numeric', year: 'numeric',
-      });
-    }
-
-    async function init() {
-      const { plants } = await fetch('/api/share-data').then(r => r.json());
-
-      document.getElementById('plant-subtitle').textContent =
-        `${plants.length} plant${plants.length !== 1 ? 's' : ''} growing · ${new Date().getFullYear()}`;
-
-      const grid = document.getElementById('plants-grid');
-      if (plants.length === 0) {
-        grid.innerHTML = '<p class="empty-state">No plants added yet.</p>';
-        return;
-      }
-
-      grid.innerHTML = plants.map(plant => `
-        <div class="plant-card card-cat-${plant.category || 'other'}">
-          <div class="plant-card-top">
-            ${plant.location ? `<span class="plant-loc">${plant.location}</span>` : ''}
-            ${plant.heirloom ? `<span class="plant-loc">${HEIRLOOM_LABELS[plant.heirloom] || ''}</span>` : ''}
-          </div>
-          <h3 class="plant-card-name">${plant.name}</h3>
-          ${plant.variety && !plant.name?.includes(plant.variety)
-            ? `<div class="plant-card-sub">${plant.variety}</div>` : ''}
-          ${plant.datePlanted
-            ? `<div class="plant-card-meta">Planted ${formatDate(plant.datePlanted)}</div>` : ''}
-          ${plant.category
-            ? `<div class="plant-card-meta">${CATEGORY_LABELS[plant.category] || plant.category}</div>` : ''}
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PLANT DETAIL MODAL                                     -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="plant-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <h2 id="modal-plant-name"></h2>
+          <div id="modal-status"></div>
         </div>
-      `).join('');
-    }
+        <button id="modal-close" class="modal-close-btn" title="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-section" id="modal-details"></div>
+        <div class="modal-section">
+          <h3>Growth Milestones</h3>
+          <div id="modal-milestones"></div>
+        </div>
+        <div class="modal-section">
+          <h3>Care Instructions</h3>
+          <div id="modal-care"></div>
+        </div>
+        <div class="modal-section">
+          <h3>Recent Activity</h3>
+          <div id="modal-history"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    init();
-  </script>
+  <script>window.SHARE_MODE = true;</script>
+  <script src="./app.js"></script>
 </body>
 </html>

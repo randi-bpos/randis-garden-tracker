@@ -34,7 +34,8 @@ async function apiCall(method, url, body) {
 }
 
 async function loadData() {
-  const data = await apiCall('GET', '/api/data');
+  const url = window.SHARE_MODE ? '/api/share-data' : '/api/data';
+  const data = await apiCall('GET', url);
   state.plants = data.plants || [];
   state.logs = data.logs || [];
 }
@@ -743,6 +744,7 @@ function updatePlantPicker(selectedIds = null) {
 // Init — wire everything up on page load
 // ============================================================
 async function init() {
+  if (window.SHARE_MODE) document.body.classList.add('share-mode');
   await loadData();
   renderAll();
 
