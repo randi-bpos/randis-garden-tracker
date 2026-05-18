@@ -70,9 +70,49 @@ function relativeTime(dateStr) {
   return formatDate(dateStr);
 }
 
+function promptDate(message, defaultValue) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'date-prompt-overlay';
+    overlay.innerHTML = `
+      <div class="date-prompt">
+        <p>${message}</p>
+        <input type="date" id="date-prompt-input" value="${defaultValue}" max="${today()}">
+        <div class="date-prompt-actions">
+          <button class="btn-primary" id="date-prompt-ok">Confirm</button>
+          <button class="btn-secondary" id="date-prompt-cancel">Cancel</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    document.getElementById('date-prompt-ok').addEventListener('click', () => {
+      const val = document.getElementById('date-prompt-input').value;
+      document.body.removeChild(overlay);
+      resolve(val || null);
+    });
+    document.getElementById('date-prompt-cancel').addEventListener('click', () => {
+      document.body.removeChild(overlay);
+      resolve(null);
+    });
+  });
+}
+
+function getEffectiveLogs(plantId) {
+  const plant = state.plants.find(p => p.id === plantId);
+  const diedAt = plant?.diedAt || null;
+  return state.logs.filter(l => {
+    if (l.plantIds.includes(plantId)) return true;
+    if (l.plantIds.includes('all')) {
+      if (diedAt && l.date > diedAt) return false;
+      return true;
+    }
+    return false;
+  });
+}
+
 function getLastWatered(plantId) {
-  return state.logs
-    .filter(l => l.type === 'water' && (l.plantIds.includes('all') || l.plantIds.includes(plantId)))
+  return getEffectiveLogs(plantId)
+    .filter(l => l.type === 'water')
     .sort((a, b) => new Date(b.date) - new Date(a.date))[0]?.date || null;
 }
 
@@ -95,6 +135,7 @@ const CATEGORY_LABELS = {
   eggplant: 'Eggplant',
   melon:    'Melon',
   berries:  'Berries',
+  flowers:  'Flowers',
   other:    'Other',
 };
 
@@ -152,6 +193,10 @@ const CATEGORY_FIELDS = {
     { name: 'variety',   label: 'Variety / Cultivar', type: 'text',   placeholder: 'e.g. Chandler, Bluecrop, Heritage, Triple Crown' },
     { name: 'bearingType', label: 'Bearing Type',     type: 'select', options: ['', 'June-bearing', 'Everbearing', 'Day-neutral', 'Summer-bearing', 'Fall-bearing'] },
   ],
+  flowers: [
+    { name: 'variety',     label: 'Flower & Variety', type: 'text',   placeholder: 'e.g. Marigold, Zinnia, Black-Eyed Susan' },
+    { name: 'flowerCycle', label: 'Life Cycle',        type: 'select', options: ['', 'Annual', 'Perennial', 'Biennial'] },
+  ],
   other: [
     { name: 'variety', label: 'Crop & Variety', type: 'text', placeholder: 'e.g. Okra, Tomatillo Verde, Edamame' },
   ],
@@ -168,6 +213,7 @@ const TYPE_LABELS = {
   first_fruit: 'First Fruit',
   harvest_start: 'Harvest Started',
   height: 'Height',
+  died: 'Died',
 };
 
 // ============================================================
@@ -244,7 +290,7 @@ function daysBetween(dateA, dateB) {
 }
 
 function getPlantMilestones(plantId, datePlanted) {
-  const plantLogs = state.logs.filter(l => l.plantIds.includes('all') || l.plantIds.includes(plantId));
+  const plantLogs = getEffectiveLogs(plantId);
 
   const getFirst = (type) => plantLogs
     .filter(l => l.type === type)
@@ -342,10 +388,17 @@ function switchTab(tab) {
 // Dashboard
 // ============================================================
 function renderDashboard() {
-  document.getElementById('stat-plants').textContent = state.plants.length;
+  document.getElementById('stat-plants').textContent = state.plants.filter(p => !p.diedAt).length;
+  document.getElementById('stat-died').textContent = state.plants.filter(p => p.diedAt).length;
 
-  const waterThisWeek = state.logs.filter(l => l.type === 'water' && daysSince(l.date) <= 7).length;
-  document.getElementById('stat-watered').textContent = waterThisWeek;
+  const producingCount = state.plants.filter(p => {
+    if (p.diedAt) return false;
+    return state.logs.some(l =>
+      ['harvest_start', 'first_fruit', 'harvest'].includes(l.type) &&
+      (l.plantIds.includes(p.id) || l.plantIds.includes('all'))
+    );
+  }).length;
+  document.getElementById('stat-producing').textContent = producingCount;
 
   const lastRain = getLastRain();
   document.getElementById('stat-rain').textContent = lastRain ? relativeTime(lastRain) : '—';
@@ -359,7 +412,7 @@ function renderDashboard() {
   const filterBar = document.getElementById('dashboard-filter-bar');
   if (presentCategories.length >= 1) {
     filterBar.innerHTML = ['all', ...presentCategories].map(cat => {
-      const plurals = { tomato:'Tomatoes', pepper:'Peppers', cucumber:'Cucumbers', squash:'Squash / Zucchini', beans:'Beans', lettuce:'Lettuce / Salad Greens', herb:'Herbs', root:'Root Vegetables', corn:'Corn', eggplant:'Eggplant', melon:'Melons', berries:'Berries', other:'Other' };
+      const plurals = { tomato:'Tomatoes', pepper:'Peppers', cucumber:'Cucumbers', squash:'Squash / Zucchini', beans:'Beans', lettuce:'Lettuce / Salad Greens', herb:'Herbs', root:'Root Vegetables', corn:'Corn', eggplant:'Eggplant', melon:'Melons', berries:'Berries', flowers:'Flowers', other:'Other' };
       const label = cat === 'all' ? 'All' : (plurals[cat] || CATEGORY_LABELS[cat] || cat);
       return `<button class="filter-btn ${state.dashboardFilter === cat ? 'active' : ''}" onclick="filterDashboard('${cat}')">${label}</button>`;
     }).join('');
@@ -368,9 +421,14 @@ function renderDashboard() {
   }
 
   const grid = document.getElementById('plants-grid');
-  const visiblePlants = state.dashboardFilter === 'all'
+  const filteredPlants = state.dashboardFilter === 'all'
     ? state.plants
     : state.plants.filter(p => p.category === state.dashboardFilter);
+  // Living plants first, dead plants at the end
+  const visiblePlants = [
+    ...filteredPlants.filter(p => !p.diedAt),
+    ...filteredPlants.filter(p => p.diedAt),
+  ];
 
   if (state.plants.length === 0) {
     grid.innerHTML = `<p class="empty-state">No plants added yet — click the <strong>Plants</strong> tab above to add your first one.</p>`;
@@ -387,8 +445,28 @@ function renderDashboard() {
     const waterLabel = lastWatered
       ? `Last watered ${relativeTime(lastWatered)}`
       : 'Not watered yet';
-    const isOverdue = daysWater !== null && daysWater > 3;
+    const isOverdue = !plant.diedAt && daysWater !== null && daysWater > 3;
     const { latestHeight } = getPlantMilestones(plant.id, plant.datePlanted);
+
+    if (plant.diedAt) {
+      return `
+        <div class="plant-card plant-dead card-cat-${plant.category || 'other'}">
+          <div class="plant-card-top">
+            ${plant.location ? `<span class="plant-loc">${plant.location}</span>` : ''}
+            <span class="plant-died-badge">Died ${formatDate(plant.diedAt)}</span>
+          </div>
+          <h3 class="plant-card-name">${plant.name}</h3>
+          ${(plant.variety || plant.rootCrop) && !plant.name?.includes(plant.variety || plant.rootCrop) ? `<div class="plant-card-sub">${plant.variety || plant.rootCrop}</div>` : ''}
+          ${plant.datePlanted ? `<div class="plant-card-meta">Planted ${formatDate(plant.datePlanted)}</div>` : ''}
+          <div class="water-status">${waterLabel}</div>
+          ${latestHeight ? `<div class="card-height">Height: ${latestHeight.amount || latestHeight.notes || '?'}</div>` : ''}
+          <div class="plant-card-actions">
+            <button class="btn-sm btn-card-view" onclick="openModal('${plant.id}')">Details</button>
+            <button class="btn-sm btn-restore" onclick="restorePlant('${plant.id}')">Restore</button>
+          </div>
+        </div>
+      `;
+    }
 
     return `
       <div class="plant-card card-cat-${plant.category || 'other'}">
@@ -421,19 +499,29 @@ function renderPlants() {
     return;
   }
 
-  list.innerHTML = state.plants.map(plant => `
-    <div class="plant-row" id="prow-${plant.id}">
+  const sortedPlants = [
+    ...state.plants.filter(p => !p.diedAt),
+    ...state.plants.filter(p => p.diedAt),
+  ];
+
+  list.innerHTML = sortedPlants.map(plant => `
+    <div class="plant-row${plant.diedAt ? ' plant-dead' : ''}" id="prow-${plant.id}">
       <div class="plant-row-head" onclick="toggleRow('${plant.id}')">
         <span class="plant-row-name">
           <strong>${plant.name}</strong>
           ${getCategorySubtitle(plant) ? `<span class="plant-row-sub"> · ${getCategorySubtitle(plant)}</span>` : ''}
           ${plant.location ? `<span class="muted"> · ${plant.location}</span>` : ''}
+          ${plant.diedAt ? `<span class="plant-died-badge" style="margin-left:8px">Died ${formatDate(plant.diedAt)}</span>` : ''}
         </span>
         <span class="expand-arrow" id="arrow-${plant.id}">▼</span>
       </div>
       <div class="plant-row-body hidden" id="pbody-${plant.id}">
         <div class="row-actions">
           <button class="btn-sm" onclick="startEditPlant('${plant.id}')">Edit Plant</button>
+          ${plant.diedAt
+            ? `<button class="btn-sm btn-restore" onclick="restorePlant('${plant.id}')">Restore Plant</button>`
+            : `<button class="btn-sm btn-died" onclick="markDied('${plant.id}')">Mark as Died</button>`
+          }
           <button class="btn-sm btn-danger" onclick="confirmDeletePlant('${plant.id}')">Delete</button>
         </div>
         <div class="row-detail-grid">
@@ -465,8 +553,7 @@ function renderPlants() {
 }
 
 function renderPlantHistory(plantId) {
-  const entries = state.logs
-    .filter(l => l.plantIds.includes('all') || l.plantIds.includes(plantId))
+  const entries = getEffectiveLogs(plantId)
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 15);
 
@@ -565,12 +652,20 @@ function openModal(plantId) {
 
   document.getElementById('modal-plant-name').textContent =
     plant.name + (plant.variety ? ` (${plant.variety})` : '');
-  document.getElementById('modal-status').innerHTML = '';
+  document.getElementById('modal-status').innerHTML = plant.diedAt
+    ? `<span class="plant-died-badge">Died ${formatDate(plant.diedAt)}</span>`
+    : '';
   document.getElementById('modal-details').innerHTML = `
     ${renderCategoryDetails(plant)}
     <p><strong>Planted:</strong> ${formatDate(plant.datePlanted)}</p>
     <p><strong>Container:</strong> ${plant.location || '—'}</p>
     ${plant.notes ? `<p><strong>Notes:</strong> ${plant.notes}</p>` : ''}
+    <div class="modal-plant-actions">
+      ${plant.diedAt
+        ? `<button class="btn-sm btn-restore" onclick="restorePlant('${plant.id}')">Restore Plant</button>`
+        : `<button class="btn-sm btn-died" onclick="markDied('${plant.id}')">Mark as Died</button>`
+      }
+    </div>
   `;
   document.getElementById('modal-milestones').innerHTML = renderMilestones(plantId, plant.datePlanted);
   document.getElementById('modal-care').innerHTML = plant.careInstructions
@@ -609,6 +704,32 @@ async function quickNote(plantId) {
   });
   await loadData();
   renderAll();
+}
+
+async function markDied(plantId) {
+  const plant = state.plants.find(p => p.id === plantId);
+  if (!plant) return;
+  const date = await promptDate(`When did "${plant.name}" die?`, today());
+  if (!date) return;
+  await apiCall('PUT', `/api/plants/${plantId}`, { diedAt: date });
+  await apiCall('POST', '/api/logs', {
+    date,
+    type: 'died',
+    plantIds: [plantId],
+    notes: '',
+  });
+  await loadData();
+  renderAll();
+  closeModal();
+}
+
+async function restorePlant(plantId) {
+  const plant = state.plants.find(p => p.id === plantId);
+  if (!plant) return;
+  await apiCall('PUT', `/api/plants/${plantId}`, { diedAt: null });
+  await loadData();
+  renderAll();
+  closeModal();
 }
 
 // ============================================================

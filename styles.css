@@ -320,6 +320,91 @@ body {
 }
 .plant-card:hover { box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08); }
 
+.plant-card.plant-dead {
+  background: #f5f5f4;
+  border-color: #d1d5db;
+  opacity: 0.82;
+}
+.plant-card.plant-dead .plant-card-name { color: var(--muted); }
+.plant-card.plant-dead .plant-card-sub  { color: #9ca3af; }
+
+.plant-died-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: #e5e7eb;
+  color: #6b7280;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+.plant-row.plant-dead .plant-row-head { color: var(--muted); }
+.plant-row.plant-dead .plant-row-head:hover { background: #f9fafb; }
+
+.btn-sm.btn-died   { border-color: #e8b0a8; color: var(--danger); }
+.btn-sm.btn-died:hover { background: #fdf0ee; }
+.btn-sm.btn-restore { border-color: #90c4dc; color: #1a6d96; }
+.btn-sm.btn-restore:hover { background: #eaf5fb; }
+
+.modal-plant-actions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* ============================================================
+   Date prompt dialog
+   ============================================================ */
+.date-prompt-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 16px;
+}
+
+.date-prompt {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 100%;
+  max-width: 340px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+.date-prompt p {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 14px;
+  color: var(--text);
+}
+
+.date-prompt input[type="date"] {
+  font: inherit;
+  font-size: 0.92rem;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 100%;
+  margin-bottom: 14px;
+}
+
+.date-prompt input[type="date"]:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.date-prompt-actions {
+  display: flex;
+  gap: 8px;
+}
+
 /* ============================================================
    Share / view-only mode — hide all edit controls
    ============================================================ */
@@ -328,8 +413,10 @@ body {
 .share-mode .row-actions,
 .share-mode .btn-card-water,
 .share-mode .btn-card-note,
+.share-mode .btn-restore,
 .share-mode .section-header,
 .share-mode .log-entry-actions,
+.share-mode .modal-plant-actions,
 .share-mode .btn-logout { display: none !important; }
 
 /* Category color accents — left border per plant type */
@@ -345,6 +432,7 @@ body {
 .card-cat-eggplant { border-left: 4px solid #8b4ec2; }
 .card-cat-melon    { border-left: 4px solid #e8834a; }
 .card-cat-berries  { border-left: 4px solid #a84ec2; }
+.card-cat-flowers  { border-left: 4px solid #e06fa0; }
 .card-cat-other    { border-left: 4px solid #8c9e8c; }
 
 .plant-card-top {
@@ -436,6 +524,7 @@ body {
 .t-first_fruit   { background: #fff7ed; color: #c2410c; }
 .t-harvest_start { background: #f0fdf4; color: #15803d; }
 .t-height        { background: #f8fafc; color: #475569; }
+.t-died          { background: #e5e7eb; color: #4b5563; }
 
 /* ============================================================
    Category details
