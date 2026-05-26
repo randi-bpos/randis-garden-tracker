@@ -468,7 +468,7 @@ function renderDashboard() {
           </div>
           <h3 class="plant-card-name">${plant.name}</h3>
           ${(plant.variety || plant.rootCrop) && !plant.name?.includes(plant.variety || plant.rootCrop) ? `<div class="plant-card-sub">${plant.variety || plant.rootCrop}</div>` : ''}
-          ${plant.datePlanted ? `<div class="plant-card-meta">Planted ${formatDate(plant.datePlanted)}</div>` : ''}
+          ${plant.datePlanted ? `<div class="plant-card-meta">Planted ${daysSince(plant.datePlanted)} days ago</div>` : ''}
           <div class="water-status">${waterLabel}</div>
           ${latestHeight ? `<div class="card-height">Height: ${latestHeight.amount || latestHeight.notes || '?'}</div>` : ''}
           <div class="plant-card-actions">
@@ -486,7 +486,7 @@ function renderDashboard() {
         </div>
         <h3 class="plant-card-name">${plant.name}</h3>
         ${(plant.variety || plant.rootCrop) && !plant.name?.includes(plant.variety || plant.rootCrop) ? `<div class="plant-card-sub">${plant.variety || plant.rootCrop}</div>` : ''}
-        ${plant.datePlanted ? `<div class="plant-card-meta">Planted ${formatDate(plant.datePlanted)}</div>` : ''}
+        ${plant.datePlanted ? `<div class="plant-card-meta">Planted ${daysSince(plant.datePlanted)} days ago</div>` : ''}
         <div class="water-status ${isOverdue ? 'overdue' : ''}">${waterLabel}</div>
         ${latestHeight ? `<div class="card-height">Height: ${latestHeight.amount || latestHeight.notes || '?'}</div>` : ''}
         <div class="plant-card-actions">
