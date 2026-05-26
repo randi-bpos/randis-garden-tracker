@@ -50,7 +50,8 @@ function today() {
 function daysSince(dateStr) {
   if (!dateStr) return null;
   const then = new Date(dateStr + 'T12:00:00');
-  return Math.floor((Date.now() - then) / 86400000);
+  const now  = new Date(today() + 'T12:00:00');
+  return Math.round((now - then) / 86400000);
 }
 
 function formatDate(dateStr) {
@@ -441,10 +442,20 @@ function renderDashboard() {
 
   grid.innerHTML = visiblePlants.map(plant => {
     const lastWatered = getLastWatered(plant.id);
-    const daysWater = daysSince(lastWatered);
-    const waterLabel = lastWatered
-      ? `Last watered ${relativeTime(lastWatered)}`
-      : 'Not watered yet';
+
+    // Use whichever is more recent: manual watering or rain
+    let effectiveDate = lastWatered;
+    let waterLabel;
+    if (lastRain && (!lastWatered || new Date(lastRain) >= new Date(lastWatered))) {
+      effectiveDate = lastRain;
+      waterLabel = `Last rained ${relativeTime(lastRain)}`;
+    } else if (lastWatered) {
+      waterLabel = `Last watered ${relativeTime(lastWatered)}`;
+    } else {
+      waterLabel = 'Not watered yet';
+    }
+
+    const daysWater = daysSince(effectiveDate);
     const isOverdue = !plant.diedAt && daysWater !== null && daysWater > 3;
     const { latestHeight } = getPlantMilestones(plant.id, plant.datePlanted);
 
