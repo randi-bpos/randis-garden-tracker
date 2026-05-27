@@ -390,7 +390,9 @@ function switchTab(tab) {
 // ============================================================
 function renderDashboard() {
   document.getElementById('stat-plants').textContent = state.plants.filter(p => !p.diedAt).length;
-  document.getElementById('stat-died').textContent = state.plants.filter(p => p.diedAt).length;
+
+  const statDied = document.getElementById('stat-died');
+  if (statDied) statDied.textContent = state.plants.filter(p => p.diedAt).length;
 
   const producingCount = state.plants.filter(p => {
     if (p.diedAt) return false;
@@ -399,7 +401,8 @@ function renderDashboard() {
       (l.plantIds.includes(p.id) || l.plantIds.includes('all'))
     );
   }).length;
-  document.getElementById('stat-producing').textContent = producingCount;
+  const statProducing = document.getElementById('stat-producing');
+  if (statProducing) statProducing.textContent = producingCount;
 
   const lastRain = getLastRain();
   document.getElementById('stat-rain').textContent = lastRain ? relativeTime(lastRain) : '—';
