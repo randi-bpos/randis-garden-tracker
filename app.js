@@ -568,8 +568,7 @@ function renderPlants() {
 
 function renderPlantHistory(plantId) {
   const entries = getEffectiveLogs(plantId)
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .slice(0, 15);
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   if (entries.length === 0) return `<p class="muted">No activity logged yet.</p>`;
 
