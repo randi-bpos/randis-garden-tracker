@@ -183,6 +183,15 @@ app.get('/share', (req, res) => {
   res.sendFile(path.join(__dirname, 'share.html'));
 });
 
+// Redirect sharegardenapp subdomain root to share page
+app.use((req, res, next) => {
+  const host = req.hostname || '';
+  if (host.toLowerCase().startsWith('sharegardenapp') && req.path === '/') {
+    return res.sendFile(path.join(__dirname, 'share.html'));
+  }
+  next();
+});
+
 // Protect main app page
 app.use((req, res, next) => {
   if ((req.path === '/' || req.path === '/index.html') && !isAuthenticated(req)) {
