@@ -101,13 +101,16 @@ function promptDate(message, defaultValue) {
 function getEffectiveLogs(plantId) {
   const plant = state.plants.find(p => p.id === plantId);
   const diedAt = plant?.diedAt || null;
+  // Use end-of-day on the death date so logs logged ON that date are always included
+  const diedTime = diedAt ? new Date(diedAt.slice(0, 10) + 'T23:59:59').getTime() : null;
   return state.logs.filter(l => {
+    const logTime = new Date(l.date.slice(0, 10) + 'T12:00:00').getTime();
     if (l.plantIds.includes(plantId)) {
-      if (diedAt && l.date > diedAt) return false;
+      if (diedTime && logTime > diedTime) return false;
       return true;
     }
     if (l.plantIds.includes('all')) {
-      if (diedAt && l.date > diedAt) return false;
+      if (diedTime && logTime > diedTime) return false;
       return true;
     }
     return false;
