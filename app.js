@@ -593,12 +593,12 @@ function renderPlantHistory(plantId, includeActions = false) {
   return `<ul class="history-list">${entries.map(log => `
     <li>
       <span class="log-date-sm">${formatDate(log.date)}</span>
-      <span class="type-badge t-${log.type}">${TYPE_LABELS[log.type] || log.type}</span>
+      <span class="type-badge t-${log.type || 'unknown'}">${TYPE_LABELS[log.type] || log.type || 'Unknown'}</span>
       ${log.amount ? `<span class="log-amt">${log.amount}</span>` : ''}
       ${log.notes ? `<span class="log-note-sm"> — ${log.notes}</span>` : ''}
       ${includeActions ? `
         <span class="log-entry-actions">
-          <button class="btn-edit-log" onclick="editLogFromModal('${log.id}')" title="Edit entry">Edit</button>
+          ${log.type && log.type !== 'died' ? `<button class="btn-edit-log" onclick="editLogFromModal('${log.id}')" title="Edit entry">Edit</button>` : ''}
           <button class="btn-del" onclick="confirmDeleteLog('${log.id}')" title="Delete entry">✕</button>
         </span>` : ''}
     </li>
@@ -671,7 +671,7 @@ function renderJournal() {
       <div class="log-entry">
         <div class="log-entry-top">
           <span class="log-date">${formatDate(log.date)}</span>
-          <span class="type-badge t-${log.type}">${TYPE_LABELS[log.type] || log.type}</span>
+          <span class="type-badge t-${log.type || 'unknown'}">${TYPE_LABELS[log.type] || log.type || 'Unknown'}</span>
           <span class="log-plants">${plantNames}</span>
           <div class="log-entry-actions">
             <button class="btn-edit-log" onclick="startEditLog('${log.id}')" title="Edit entry">Edit</button>
@@ -1077,6 +1077,10 @@ async function init() {
       amount: form.elements['amount'].value.trim(),
       notes: form.elements['notes'].value.trim(),
     };
+    if (!payload.type) {
+      alert('Please select an event type.');
+      return;
+    }
     if (state.editingLogId) {
       await apiCall('PUT', `/api/logs/${state.editingLogId}`, payload);
     } else {
