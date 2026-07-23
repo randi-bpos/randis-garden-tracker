@@ -117,6 +117,12 @@ function getLastWatered(plantId) {
     .sort((a, b) => new Date(b.date) - new Date(a.date))[0]?.date || null;
 }
 
+function getLastRainForPlant(plantId) {
+  return getEffectiveLogs(plantId)
+    .filter(l => l.type === 'rain')
+    .sort((a, b) => new Date(b.date) - new Date(a.date))[0]?.date || null;
+}
+
 function getLastRain() {
   return state.logs
     .filter(l => l.type === 'rain')
@@ -305,15 +311,16 @@ function getPlantMilestones(plantId, datePlanted) {
     firstFlowers: getFirst('first_flowers'),
     firstFruit: getFirst('first_fruit'),
     harvestStart: getFirst('harvest_start'),
+    firstHarvest: getFirst('harvest'),
     latestHeight: heights[0] || null,
     allHeights: heights,
   };
 }
 
 function renderMilestones(plantId, datePlanted) {
-  const { firstFlowers, firstFruit, harvestStart, latestHeight, allHeights } = getPlantMilestones(plantId, datePlanted);
+  const { firstFlowers, firstFruit, harvestStart, firstHarvest, latestHeight, allHeights } = getPlantMilestones(plantId, datePlanted);
 
-  function row(label, entry, daysLabel) {
+  function row(label, entry, daysLabel, addAction = null) {
     if (entry) {
       return `
         <div class="milestone-row achieved">
@@ -329,6 +336,7 @@ function renderMilestones(plantId, datePlanted) {
         <span class="milestone-dot">○</span>
         <span class="milestone-label">${label}</span>
         <span class="milestone-pending">Not logged yet</span>
+        ${addAction ? `<button class="btn-sm" onclick="${addAction}">Log date</button>` : ''}
       </div>`;
   }
 
@@ -340,6 +348,9 @@ function renderMilestones(plantId, datePlanted) {
     : null;
   const daysToHarvest = harvestStart && firstFruit
     ? `${daysBetween(firstFruit.date, harvestStart.date)} days after first fruit`
+    : null;
+  const daysToFirstHarvest = firstHarvest && datePlanted
+    ? `${daysBetween(datePlanted, firstHarvest.date)} days after planting`
     : null;
 
   let heightHtml = '';
@@ -368,6 +379,7 @@ function renderMilestones(plantId, datePlanted) {
     ${row('First Flowers', firstFlowers, daysToFlowers)}
     ${row('First Fruit', firstFruit, daysToFruit)}
     ${row('Harvest Started', harvestStart, daysToHarvest)}
+    ${row('First Harvest', firstHarvest, daysToFirstHarvest, `logMilestoneHarvest('${plantId}')`)}
     ${heightHtml}
   </div>`;
 }
@@ -445,13 +457,14 @@ function renderDashboard() {
 
   grid.innerHTML = visiblePlants.map(plant => {
     const lastWatered = getLastWatered(plant.id);
+    const lastRainForPlant = getLastRainForPlant(plant.id);
 
     // Use whichever is more recent: manual watering or rain
     let effectiveDate = lastWatered;
     let waterLabel;
-    if (lastRain && (!lastWatered || new Date(lastRain) >= new Date(lastWatered))) {
-      effectiveDate = lastRain;
-      waterLabel = `Last rained ${relativeTime(lastRain)}`;
+    if (lastRainForPlant && (!lastWatered || new Date(lastRainForPlant) >= new Date(lastWatered))) {
+      effectiveDate = lastRainForPlant;
+      waterLabel = `Last rained ${relativeTime(lastRainForPlant)}`;
     } else if (lastWatered) {
       waterLabel = `Last watered ${relativeTime(lastWatered)}`;
     } else {
@@ -734,6 +747,22 @@ async function markDied(plantId) {
   await loadData();
   renderAll();
   closeModal();
+}
+
+async function logMilestoneHarvest(plantId) {
+  const plant = state.plants.find(p => p.id === plantId);
+  if (!plant) return;
+  const date = await promptDate(`When did you first harvest from "${plant.name}"?`, today());
+  if (!date) return;
+  await apiCall('POST', '/api/logs', {
+    date,
+    type: 'harvest',
+    plantIds: [plantId],
+    notes: '',
+  });
+  await loadData();
+  renderAll();
+  openModal(plantId);
 }
 
 async function restorePlant(plantId) {
