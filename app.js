@@ -102,7 +102,10 @@ function getEffectiveLogs(plantId) {
   const plant = state.plants.find(p => p.id === plantId);
   const diedAt = plant?.diedAt || null;
   return state.logs.filter(l => {
-    if (l.plantIds.includes(plantId)) return true;
+    if (l.plantIds.includes(plantId)) {
+      if (diedAt && l.date > diedAt) return false;
+      return true;
+    }
     if (l.plantIds.includes('all')) {
       if (diedAt && l.date > diedAt) return false;
       return true;
@@ -489,7 +492,6 @@ function renderDashboard() {
           ${latestHeight ? `<div class="card-height">Height: ${latestHeight.amount || latestHeight.notes || '?'}</div>` : ''}
           <div class="plant-card-actions">
             <button class="btn-sm btn-card-view" onclick="openModal('${plant.id}')">Details</button>
-            <button class="btn-sm btn-restore" onclick="restorePlant('${plant.id}')">Restore</button>
           </div>
         </div>
       `;
@@ -579,7 +581,7 @@ function renderPlants() {
   `).join('');
 }
 
-function renderPlantHistory(plantId) {
+function renderPlantHistory(plantId, includeActions = false) {
   const entries = getEffectiveLogs(plantId)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -591,8 +593,19 @@ function renderPlantHistory(plantId) {
       <span class="type-badge t-${log.type}">${TYPE_LABELS[log.type] || log.type}</span>
       ${log.amount ? `<span class="log-amt">${log.amount}</span>` : ''}
       ${log.notes ? `<span class="log-note-sm"> — ${log.notes}</span>` : ''}
+      ${includeActions ? `
+        <span class="log-entry-actions">
+          <button class="btn-edit-log" onclick="editLogFromModal('${log.id}')" title="Edit entry">Edit</button>
+          <button class="btn-del" onclick="confirmDeleteLog('${log.id}')" title="Delete entry">✕</button>
+        </span>` : ''}
     </li>
   `).join('')}</ul>`;
+}
+
+function editLogFromModal(logId) {
+  closeModal();
+  switchTab('journal');
+  startEditLog(logId);
 }
 
 function toggleRow(plantId) {
@@ -697,7 +710,7 @@ function openModal(plantId) {
   document.getElementById('modal-care').innerHTML = plant.careInstructions
     ? `<div class="care-box">${plant.careInstructions.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</div>`
     : `<p class="muted">No care instructions added yet. Edit this plant to add them.</p>`;
-  document.getElementById('modal-history').innerHTML = renderPlantHistory(plantId);
+  document.getElementById('modal-history').innerHTML = renderPlantHistory(plantId, true);
 
   document.getElementById('plant-modal').classList.remove('hidden');
 }
