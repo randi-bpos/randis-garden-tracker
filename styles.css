@@ -979,6 +979,16 @@ body {
 }
 .modal-section:last-child { margin-bottom: 0; }
 
+.modal-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.modal-section-header h3 {
+  margin-bottom: 0;
+}
+
 .modal-section h3 {
   font-size: 0.78rem;
   text-transform: uppercase;

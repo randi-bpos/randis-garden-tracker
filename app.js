@@ -610,6 +610,19 @@ function editLogFromModal(logId) {
   startEditLog(logId);
 }
 
+function addLogFromModal(plantId) {
+  closeModal();
+  switchTab('journal');
+  state.editingLogId = null;
+  const form = document.getElementById('log-form');
+  form.reset();
+  document.getElementById('log-date').value = today();
+  document.getElementById('log-form-title').textContent = 'New Log Entry';
+  updatePlantPicker([plantId]);
+  document.getElementById('log-form-container').classList.remove('hidden');
+  document.getElementById('log-form-container').scrollIntoView({ behavior: 'smooth' });
+}
+
 function toggleRow(plantId) {
   const body = document.getElementById(`pbody-${plantId}`);
   const arrow = document.getElementById(`arrow-${plantId}`);
@@ -713,6 +726,8 @@ function openModal(plantId) {
     ? `<div class="care-box">${plant.careInstructions.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</div>`
     : `<p class="muted">No care instructions added yet. Edit this plant to add them.</p>`;
   document.getElementById('modal-history').innerHTML = renderPlantHistory(plantId, true);
+
+  document.getElementById('modal-add-log-btn').onclick = () => addLogFromModal(plantId);
 
   document.getElementById('plant-modal').classList.remove('hidden');
 }
