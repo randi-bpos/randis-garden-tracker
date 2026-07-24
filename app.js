@@ -320,7 +320,6 @@ function getPlantMilestones(plantId, datePlanted) {
   return {
     firstFlowers: getFirst('first_flowers'),
     firstFruit: getFirst('first_fruit'),
-    harvestStart: getFirst('harvest_start'),
     firstHarvest: getFirst('harvest'),
     latestHeight: heights[0] || null,
     allHeights: heights,
@@ -328,7 +327,7 @@ function getPlantMilestones(plantId, datePlanted) {
 }
 
 function renderMilestones(plantId, datePlanted) {
-  const { firstFlowers, firstFruit, harvestStart, firstHarvest, latestHeight, allHeights } = getPlantMilestones(plantId, datePlanted);
+  const { firstFlowers, firstFruit, firstHarvest, latestHeight, allHeights } = getPlantMilestones(plantId, datePlanted);
 
   function row(label, entry, daysLabel, addAction = null) {
     if (entry) {
@@ -355,9 +354,6 @@ function renderMilestones(plantId, datePlanted) {
     : null;
   const daysToFruit = firstFruit && firstFlowers
     ? `${daysBetween(firstFlowers.date, firstFruit.date)} days after first flowers`
-    : null;
-  const daysToHarvest = harvestStart && firstFruit
-    ? `${daysBetween(firstFruit.date, harvestStart.date)} days after first fruit`
     : null;
   const daysToFirstHarvest = firstHarvest && datePlanted
     ? `${daysBetween(datePlanted, firstHarvest.date)} days after planting`
@@ -388,7 +384,6 @@ function renderMilestones(plantId, datePlanted) {
   return `<div class="milestones">
     ${row('First Flowers', firstFlowers, daysToFlowers)}
     ${row('First Fruit', firstFruit, daysToFruit)}
-    ${row('Harvest Started', harvestStart, daysToHarvest)}
     ${row('First Harvest', firstHarvest, daysToFirstHarvest, `logMilestoneHarvest('${plantId}')`)}
     ${heightHtml}
   </div>`;
