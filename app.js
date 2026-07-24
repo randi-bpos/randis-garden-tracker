@@ -599,7 +599,7 @@ function renderPlantHistory(plantId, includeActions = false) {
       ${includeActions ? `
         <span class="log-entry-actions">
           ${log.type && log.type !== 'died' ? `<button class="btn-edit-log" onclick="editLogFromModal('${log.id}')" title="Edit entry">Edit</button>` : ''}
-          <button class="btn-del" onclick="confirmDeleteLog('${log.id}')" title="Delete entry">✕</button>
+          <button class="btn-del" onclick="confirmDeleteLogFromModal('${log.id}', '${plantId}')" title="Delete entry">✕</button>
         </span>` : ''}
     </li>
   `).join('')}</ul>`;
@@ -849,6 +849,29 @@ async function confirmDeleteLog(logId) {
   await apiCall('DELETE', `/api/logs/${logId}`);
   await loadData();
   renderAll();
+}
+
+async function confirmDeleteLogFromModal(logId, plantId) {
+  const log = state.logs.find(l => l.id === logId);
+  if (!log) return;
+  if (!confirm('Remove this entry from this plant\'s journal?')) return;
+
+  if (log.plantIds.includes('all')) {
+    // Don't delete the whole record — just remove this plant by switching
+    // from 'all' to an explicit list of every other plant
+    const otherIds = state.plants.map(p => p.id).filter(id => id !== plantId);
+    if (otherIds.length === 0) {
+      await apiCall('DELETE', `/api/logs/${logId}`);
+    } else {
+      await apiCall('PUT', `/api/logs/${logId}`, { plantIds: otherIds });
+    }
+  } else {
+    await apiCall('DELETE', `/api/logs/${logId}`);
+  }
+
+  await loadData();
+  renderAll();
+  openModal(plantId);
 }
 
 // ============================================================
