@@ -101,8 +101,11 @@ function promptDate(message, defaultValue) {
 function getEffectiveLogs(plantId) {
   const plant = state.plants.find(p => p.id === plantId);
   const diedAt = plant?.diedAt || null;
-  // Use end-of-day on the death date so logs logged ON that date are always included
-  const diedTime = diedAt ? new Date(diedAt.slice(0, 10) + 'T23:59:59').getTime() : null;
+  const datePlanted = plant?.datePlanted || null;
+  // Use end-of-day on death date so logs ON that date are always included
+  const diedTime    = diedAt      ? new Date(diedAt.slice(0, 10)      + 'T23:59:59').getTime() : null;
+  // Use start-of-day on planting date so logs ON that date are always included
+  const plantedTime = datePlanted ? new Date(datePlanted.slice(0, 10) + 'T00:00:00').getTime() : null;
   return state.logs.filter(l => {
     const logTime = new Date(l.date.slice(0, 10) + 'T12:00:00').getTime();
     if (l.plantIds.includes(plantId)) {
@@ -110,7 +113,8 @@ function getEffectiveLogs(plantId) {
       return true;
     }
     if (l.plantIds.includes('all')) {
-      if (diedTime && logTime > diedTime) return false;
+      if (diedTime    && logTime > diedTime)    return false;
+      if (plantedTime && logTime < plantedTime) return false;
       return true;
     }
     return false;
