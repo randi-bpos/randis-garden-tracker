@@ -4,7 +4,8 @@
   "description": "Backyard vegetable garden tracker",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "backup": "bash backup.sh"
   },
   "dependencies": {
     "cookie-session": "^2.1.1",

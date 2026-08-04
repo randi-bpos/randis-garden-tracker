@@ -1,2 +1,16 @@
 node_modules/
 data/
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+
+# macOS
+.DS_Store
+
+# Garden data backups — this repo is public, keep the data out of it
+garden-backup.json
+garden-backup-*.json
+backups/
+railway-backup.sql
