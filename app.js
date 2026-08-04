@@ -727,7 +727,9 @@ function openModal(plantId) {
     : `<p class="muted">No care instructions added yet. Edit this plant to add them.</p>`;
   document.getElementById('modal-history').innerHTML = renderPlantHistory(plantId, true);
 
-  document.getElementById('modal-add-log-btn').onclick = () => addLogFromModal(plantId);
+  // Add-log button is not present on the share page
+  const addLogBtn = document.getElementById('modal-add-log-btn');
+  if (addLogBtn) addLogBtn.onclick = () => addLogFromModal(plantId);
 
   document.getElementById('plant-modal').classList.remove('hidden');
 }
