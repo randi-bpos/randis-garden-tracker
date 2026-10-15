@@ -1120,10 +1120,20 @@ async function init() {
       alert('Please select an event type.');
       return;
     }
+    if (payload.type === 'died' && plantIds.includes('all')) {
+      alert('Please select the specific plants that died.');
+      return;
+    }
     if (state.editingLogId) {
       await apiCall('PUT', `/api/logs/${state.editingLogId}`, payload);
     } else {
       await apiCall('POST', '/api/logs', payload);
+    }
+    // A "Died" entry also marks each plant as died, same as the Mark as Died button
+    if (payload.type === 'died') {
+      for (const id of plantIds) {
+        await apiCall('PUT', `/api/plants/${id}`, { diedAt: payload.date });
+      }
     }
     form.reset();
     document.getElementById('log-date').value = today();
