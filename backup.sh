@@ -1,5 +1,5 @@
 #!/bin/bash
-# Saves a local copy of everything in the garden database.
+# Saves a local copy of everything in the garden database (hosted on Neon).
 #
 # Run it with:   npm run backup
 #
@@ -8,30 +8,24 @@
 #   backups/garden-backup-YYYY-MM-DD.json  <- a dated copy, kept forever
 #
 # Nothing is deleted or changed in the live database — this only reads.
+#
+# The connection string lives in .env.neon (never committed — this repo is
+# public). If it's missing, run:  bash save-neon-url.sh
 
 set -e
 cd "$(dirname "$0")"
 
-APP="garden-tracker"
-ENV="garden-tracker-env"
-REGION="us-east-2"
-
-echo "Looking up the database connection from AWS..."
-DATABASE_URL=$(aws elasticbeanstalk describe-configuration-settings \
-  --region "$REGION" \
-  --application-name "$APP" \
-  --environment-name "$ENV" \
-  --query "ConfigurationSettings[].OptionSettings[?OptionName=='DATABASE_URL'].Value" \
-  --output text)
-
-if [ -z "$DATABASE_URL" ] || [ "$DATABASE_URL" = "None" ]; then
-  echo "Could not read DATABASE_URL from AWS."
-  echo "Check that the AWS CLI is signed in, then try again."
+if [ ! -f .env.neon ]; then
+  echo "Missing .env.neon — run 'bash save-neon-url.sh' and paste the"
+  echo "connection string from the Neon dashboard (Connect button)."
   exit 1
 fi
 
-export DATABASE_URL
-node export-data.js
+set -a
+source .env.neon
+set +a
+
+node --no-warnings export-data.js
 
 # Keep a dated copy so backups build up over time instead of overwriting
 mkdir -p backups

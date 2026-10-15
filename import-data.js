@@ -2,14 +2,10 @@ const { Pool } = require('pg');
 const fs = require('fs');
 
 // The connection string is read from DATABASE_URL — never hardcode it here,
-// this repo is public. `npm run backup` shows how to pull it from AWS.
+// this repo is public. It's saved in .env.neon (see save-neon-url.sh).
 if (!process.env.DATABASE_URL) {
-  console.error('DATABASE_URL is not set. Get it from AWS with:');
-  console.error("  export DATABASE_URL=$(aws elasticbeanstalk describe-configuration-settings \\");
-  console.error("    --region us-east-2 --application-name garden-tracker \\");
-  console.error("    --environment-name garden-tracker-env \\");
-  console.error("    --query \"ConfigurationSettings[].OptionSettings[?OptionName=='DATABASE_URL'].Value\" \\");
-  console.error('    --output text)');
+  console.error('DATABASE_URL is not set. Load it from .env.neon with:');
+  console.error('  set -a; source .env.neon; set +a');
   process.exit(1);
 }
 

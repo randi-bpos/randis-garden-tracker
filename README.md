@@ -1,62 +1,81 @@
-# Garden Tracker (No-Code-ish Starter)
+# Randi's Garden Tracker
 
-This is a beginner-friendly garden tracker web app that stores data in Supabase.
+A web app for tracking a backyard vegetable garden.
+
+- **Main app:** https://gardenapp.randiedelson.com (password protected)
+- **Read-only share page:** https://sharegardenapp.randiedelson.com (anyone with the link can view)
 
 ## What it tracks
 
-- Plants you add (name, variety, date planted, location, status)
-- Care events (water, rain, fertilizer, notes)
-- Quick weekly totals (water logs vs rain logs in the last 7 days)
+- Plants (name, variety, category, date planted, location, status)
+- Journal entries: watering, rain, fertilizer, harvests, height measurements, observations, and when a plant died
+- Growth milestones such as first flowers and first fruit
+- Weekly totals of watering vs. rain
 
-## 1) Create a Supabase project
+## How it's hosted
 
-1. Go to [https://supabase.com](https://supabase.com) and create a new project.
-2. In Supabase dashboard, open **SQL Editor**.
-3. Copy the full contents of `supabase.sql` in this folder and run it.
+| Piece | Service | Plan |
+|---|---|---|
+| App (Node/Express, `server.js`) | [Render](https://render.com), web service `randis-garden-tracker` | Free |
+| Database (Postgres) | [Neon](https://neon.tech), project `garden-tracker` | Free |
+| Domain and DNS | [Porkbun](https://porkbun.com), `randiedelson.com` | Paid through May 2028 |
 
-## 2) Get connection values
+- **Deploys are automatic.** Pushing to the `main` branch on GitHub makes Render rebuild and restart the app within a couple of minutes.
+- **Both addresses point to the same app.** In Porkbun, `gardenapp` and `sharegardenapp` are CNAME records pointing to `randis-garden-tracker.onrender.com`. When the app is visited at the `sharegardenapp` address, `server.js` shows the share page.
+- **The free plan sleeps.** After about 15 minutes with no visitors, Render pauses the app, and the next visit takes up to a minute to load.
 
-In Supabase dashboard:
+### Settings on Render
 
-- Go to **Project Settings -> API**
-- Copy:
-  - **Project URL**
-  - **anon public key**
+These are set under the service's **Environment** tab, not in this repo:
 
-## 3) Run the app locally
+| Variable | What it is |
+|---|---|
+| `DATABASE_URL` | Neon connection string (Neon dashboard, then the **Connect** button) |
+| `GARDEN_PASSWORD` | Password for logging in to the main app |
+| `SESSION_SECRET` | Random string that keeps logins secure |
 
-This app is static HTML/CSS/JS, so any local server works.
-
-### Option A (Python)
-
-```bash
-python3 -m http.server 5500
-```
-
-Then open: `http://localhost:5500`
-
-### Option B (Node)
+## Backups
 
 ```bash
-npx serve .
+npm run backup
 ```
 
-## 4) First use
+This copies every plant and journal entry from the database into `garden-backup.json`, plus a dated copy in `backups/`. It only reads from the database and never changes it.
 
-1. Open the app in browser.
-2. Paste Supabase URL and anon key.
-3. Click **Save Connection**.
-4. Add plants and care logs.
+It needs the Neon connection string saved in `.env.neon`. To set that up on a new computer:
 
-## Important note for v1
+```bash
+bash save-neon-url.sh
+```
 
-For learning speed, the SQL policies allow anyone with your anon key to read/write.
-This is okay for a personal prototype, but we should secure it before sharing publicly.
+Then paste the connection string from Neon. Nothing shows on screen while you paste.
 
-## Next learning upgrades
+**This repo is public.** `.env.neon`, `garden-backup.json` and `backups/` are listed in `.gitignore` so they never get uploaded. Never put the connection string or password in a committed file.
 
-- Add plant photos
-- Add health rating and growth measurements
-- Add weather API auto-rain logs
-- Add login so only you can edit data
-- Add charts for weekly trends
+## Restoring from a backup
+
+To load `garden-backup.json` into a database (for example, a new one after moving hosts):
+
+```bash
+set -a; source .env.neon; set +a
+node import-data.js
+```
+
+This creates the tables if needed and adds any missing records. It doesn't overwrite or delete existing ones.
+
+## Running locally
+
+```bash
+npm install
+set -a; source .env.neon; set +a
+npm start
+```
+
+Then open http://localhost:3000. The default password is `garden` unless `GARDEN_PASSWORD` is set. This uses the real database, so changes made locally show up on the live site.
+
+## History
+
+- **Apr 2026:** started as a static page using Supabase (`supabase.sql`)
+- **May 2026:** moved to a Node server with a password, hosted on Railway
+- **May–Oct 2026:** hosted on AWS Elastic Beanstalk with an AWS database
+- **Oct 2026:** moved to Render + Neon when the AWS free credits ran out
